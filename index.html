@@ -6,7 +6,7 @@
 <title>BookRadar 📡 — 図書館蔵書検索</title>
 <meta name="description" content="Search Japanese public libraries for book availability, powered by Calil.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>📡</text></svg>">
-<link rel="stylesheet" href="style.css?v=1.0.0">
+<link rel="stylesheet" href="style.css?v=1.1.0">
 </head>
 <body>
 <div class="app">
@@ -58,6 +58,13 @@
       </div>
 
       <div class="settings-group">
+        <label for="gbooksKeyInput">Google Books API キー（任意）</label>
+        <input type="text" id="gbooksKeyInput" placeholder="キーなしでも動作しますが不安定な場合があります">
+        <p class="hint">キーなしの検索は Google の共有割り当てを使うため、他の利用者の影響で失敗することがあります。<a href="https://console.cloud.google.com/apis/library/books.googleapis.com" target="_blank" rel="noopener">無料のキーを取得</a>すると安定します（ブラウザ内にのみ保存されます）。</p>
+        <button id="saveGbooksKeyBtn">キーを保存</button>
+      </div>
+
+      <div class="settings-group">
         <label for="prefSelect">よく使う図書館（デフォルト）</label>
         <select id="prefSelect">
           <option value="">都道府県を選択</option>
@@ -75,6 +82,6 @@
   </div>
 
 </div>
-<script src="script.js?v=1.0.0"></script>
+<script src="script.js?v=1.1.0"></script>
 </body>
 </html>

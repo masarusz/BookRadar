@@ -7,7 +7,7 @@ Type a title or author, pick a book, and see which of your local libraries have 
 
 ## Features
 
-- **Search by title or author** — via the Google Books API, no key required
+- **Search by title or author** — via the Google Books API (optional API key for reliability, see below)
 - **Live availability** — checks your chosen library system(s) via Calil and polls until results are ready
 - **Default library** — set your prefecture/city once; every search checks that library system automatically
 - **Multiple systems per city** — some cities have more than one library system (ward library, university libraries, etc.) — pick which ones to include
@@ -22,6 +22,7 @@ Type a title or author, pick a book, and see which of your local libraries have 
 1. Open `index.html` (or the deployed site)
 2. Tap **⚙️** and:
    - Paste your Calil API key ([get one free here](https://calil.jp/api/dashboard/)) and save it
+   - Optionally paste a Google Books API key ([get one free here](https://console.cloud.google.com/apis/library/books.googleapis.com)) for reliable search (see below)
    - Pick your prefecture and city, choose which library system(s) to include, and save as default
 3. Search for a book by title or author
 4. Tap a result to see availability across your default library system(s)
@@ -30,7 +31,8 @@ Type a title or author, pick a book, and see which of your local libraries have 
 
 ## Technical notes
 
-- **Book search**: [Google Books API](https://developers.google.com/books) (`volumes` endpoint) — CORS-enabled, no key needed for this volume of use. Coverage of obscure/library-only Japanese titles is imperfect since it's a general book catalog, not a JP library-specific one.
+- **Book search**: [Google Books API](https://developers.google.com/books) (`volumes` endpoint) — CORS-enabled. Coverage of obscure/library-only Japanese titles is imperfect since it's a general book catalog, not a JP library-specific one.
+- **Google Books quota**: keyless requests share a *global* anonymous quota across every app calling the API without a key — it can return `429` due to unrelated traffic elsewhere, independent of your own usage (confirmed: identical `429` reproduced from two unrelated networks on the same day). Adding a free Google Cloud API key in settings gives the app its own private quota and avoids this.
 - **Availability & library data**: [Calil API](https://calil.jp/doc/api.html) `/check` and `/library` endpoints. Despite the published docs only mentioning JSONP, both endpoints return real `Access-Control-Allow-Origin: *` CORS headers when called with `callback=no`, so the whole app runs via plain `fetch()` — no proxy or JSONP needed.
 - **Async polling**: `/check` can return `continue: 1` while Calil queries the library system live. The app polls the same endpoint with the returned `session` id every 2 seconds (Calil's documented minimum interval) until `continue: 0` or ~30 seconds elapse.
 - **API key storage**: your Calil `appkey` is entered in the settings panel and stored only in the browser's `localStorage` — it is never committed to this repo. Because there's no backend, the key is still visible in outgoing network requests from your browser (unavoidable without a server-side proxy); Calil's rate limit (1,000 requests/hour) is tracked per key+IP.
@@ -56,6 +58,10 @@ script.js    # App logic (search, Calil calls, polling, rendering)
 ---
 
 ## Change Log
+
+### v1.1.0 — 2026-07-22
+- Add optional Google Books API key setting to avoid the shared anonymous-quota `429` errors that keyless search can hit
+- Clearer error messages distinguishing quota issues from other search failures
 
 ### v1.0.0 — 2026-07-22
 - Initial release

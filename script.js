@@ -11,6 +11,7 @@ const PREFECTURES = [
 ];
 
 const LS_APPKEY = 'br_appkey';
+const LS_GBOOKS_KEY = 'br_gbooks_key';
 const LS_DEFAULT = 'br_default';
 
 const els = {
@@ -19,6 +20,8 @@ const els = {
   settingsModal: document.getElementById('settingsModal'),
   appkeyInput: document.getElementById('appkeyInput'),
   saveKeyBtn: document.getElementById('saveKeyBtn'),
+  gbooksKeyInput: document.getElementById('gbooksKeyInput'),
+  saveGbooksKeyBtn: document.getElementById('saveGbooksKeyBtn'),
   prefSelect: document.getElementById('prefSelect'),
   citySelect: document.getElementById('citySelect'),
   systemsList: document.getElementById('systemsList'),
@@ -45,6 +48,10 @@ function getAppkey() {
   return localStorage.getItem(LS_APPKEY) || '';
 }
 
+function getGbooksKey() {
+  return localStorage.getItem(LS_GBOOKS_KEY) || '';
+}
+
 function getDefault() {
   const raw = localStorage.getItem(LS_DEFAULT);
   return raw ? JSON.parse(raw) : null;
@@ -67,6 +74,7 @@ function hideMessage() {
 
 function openModal() {
   els.appkeyInput.value = getAppkey();
+  els.gbooksKeyInput.value = getGbooksKey();
   refreshDefaultSummary();
   els.settingsModal.hidden = false;
 }
@@ -224,6 +232,11 @@ els.saveKeyBtn.addEventListener('click', () => {
   els.systemsList.innerHTML = '';
 });
 
+els.saveGbooksKeyBtn.addEventListener('click', () => {
+  const key = els.gbooksKeyInput.value.trim();
+  localStorage.setItem(LS_GBOOKS_KEY, key);
+});
+
 // ---------- Modal open/close ----------
 
 els.settingsBtn.addEventListener('click', openModal);
@@ -243,7 +256,14 @@ function extractIsbn(volumeInfo) {
 
 async function searchBooks(query) {
   const params = new URLSearchParams({ q: query, maxResults: '20' });
+  const gbooksKey = getGbooksKey();
+  if (gbooksKey) params.set('key', gbooksKey);
   const res = await fetch(`https://www.googleapis.com/books/v1/volumes?${params.toString()}`);
+  if (res.status === 429) {
+    throw new Error(gbooksKey
+      ? '書籍検索の割り当てを超えました。しばらく待ってから再度お試しください。'
+      : '書籍検索に失敗しました（Google の共有割り当て超過の可能性があります。設定で API キーを追加すると安定します）');
+  }
   if (!res.ok) throw new Error('書籍検索に失敗しました');
   const data = await res.json();
   return (data.items || []).map(item => {
