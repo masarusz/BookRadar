@@ -1,0 +1,66 @@
+# BookRadar 📡
+
+Search Japanese public libraries for book availability, powered by [Calil](https://calil.jp/).
+Type a title or author, pick a book, and see which of your local libraries have it — no sign-up, no server, no build step.
+
+---
+
+## Features
+
+- **Search by title or author** — via the Google Books API, no key required
+- **Live availability** — checks your chosen library system(s) via Calil and polls until results are ready
+- **Default library** — set your prefecture/city once; every search checks that library system automatically
+- **Multiple systems per city** — some cities have more than one library system (ward library, university libraries, etc.) — pick which ones to include
+- **Direct links** — each library and reservation link goes straight to the library's own catalog/reserve page
+- **Light & dark** — follows your system colour scheme
+- **No dependencies** — pure HTML / CSS / JavaScript, runs entirely client-side
+
+---
+
+## Usage
+
+1. Open `index.html` (or the deployed site)
+2. Tap **⚙️** and:
+   - Paste your Calil API key ([get one free here](https://calil.jp/api/dashboard/)) and save it
+   - Pick your prefecture and city, choose which library system(s) to include, and save as default
+3. Search for a book by title or author
+4. Tap a result to see availability across your default library system(s)
+
+---
+
+## Technical notes
+
+- **Book search**: [Google Books API](https://developers.google.com/books) (`volumes` endpoint) — CORS-enabled, no key needed for this volume of use. Coverage of obscure/library-only Japanese titles is imperfect since it's a general book catalog, not a JP library-specific one.
+- **Availability & library data**: [Calil API](https://calil.jp/doc/api.html) `/check` and `/library` endpoints. Despite the published docs only mentioning JSONP, both endpoints return real `Access-Control-Allow-Origin: *` CORS headers when called with `callback=no`, so the whole app runs via plain `fetch()` — no proxy or JSONP needed.
+- **Async polling**: `/check` can return `continue: 1` while Calil queries the library system live. The app polls the same endpoint with the returned `session` id every 2 seconds (Calil's documented minimum interval) until `continue: 0` or ~30 seconds elapse.
+- **API key storage**: your Calil `appkey` is entered in the settings panel and stored only in the browser's `localStorage` — it is never committed to this repo. Because there's no backend, the key is still visible in outgoing network requests from your browser (unavoidable without a server-side proxy); Calil's rate limit (1,000 requests/hour) is tracked per key+IP.
+- **Attribution**: per Calil's terms, every library name and reservation link is linked back to the corresponding `calil.jp` book/library page.
+- **City → library system resolution**: selecting a city calls Calil's `/library` endpoint, groups the returned libraries by `systemid`, and lets you opt in/out per system (university libraries are unchecked by default).
+
+---
+
+## Development
+
+```bash
+# No install needed — just open the file
+open index.html
+```
+
+Files:
+```
+index.html   # App shell + settings modal
+style.css    # All styles (CSS variables, responsive, light/dark)
+script.js    # App logic (search, Calil calls, polling, rendering)
+```
+
+---
+
+## Change Log
+
+### v1.0.0 — 2026-07-22
+- Initial release
+- Title/author search via Google Books
+- Default library system setup (prefecture → city → systemid selection)
+- Availability check with async polling via Calil
+- Attribution links per Calil's terms of use
+- Responsive layout with light/dark support
