@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.1.2';
 
 const PREFECTURES = [
   '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
@@ -333,6 +333,7 @@ async function checkAvailability(book) {
     return;
   }
 
+  els.resultsSection.hidden = true;
   els.availabilitySection.hidden = false;
   els.availabilityList.innerHTML = '';
   els.availabilityBook.innerHTML = `<a href="https://calil.jp/book/${book.isbn}" target="_blank" rel="noopener">${book.title}</a>`;

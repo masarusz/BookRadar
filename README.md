@@ -59,6 +59,9 @@ script.js    # App logic (search, Calil calls, polling, rendering)
 
 ## Change Log
 
+### v1.1.2 — 2026-07-22
+- Selecting a book now hides the search results list, showing only the 蔵書状況 (availability) panel instead of both at once
+
 ### v1.1.1 — 2026-07-22
 - Show the current version number in the footer, so you can confirm the deployed site has actually updated (GitHub Pages caches assets for a while after each release)
 
