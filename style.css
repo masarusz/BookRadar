@@ -86,6 +86,12 @@ body {
   gap: 0.5rem;
 }
 
+.clear-btn {
+  background: none;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
 #searchInput {
   flex: 1;
   padding: 0.7rem 0.9rem;

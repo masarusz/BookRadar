@@ -6,7 +6,7 @@
 <title>BookRadar 📡 — 図書館蔵書検索</title>
 <meta name="description" content="Search Japanese public libraries for book availability, powered by Calil.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>📡</text></svg>">
-<link rel="stylesheet" href="style.css?v=1.1.2">
+<link rel="stylesheet" href="style.css?v=1.2.0">
 </head>
 <body>
 <div class="app">
@@ -22,6 +22,7 @@
       <form id="searchForm" autocomplete="off">
         <input type="text" id="searchInput" placeholder="書名・著者名で検索" required>
         <button type="submit">検索</button>
+        <button type="button" id="clearBtn" class="clear-btn" hidden>クリア</button>
       </form>
       <p id="currentCity" class="current-city"></p>
     </section>
@@ -83,6 +84,6 @@
   </div>
 
 </div>
-<script src="script.js?v=1.1.2"></script>
+<script src="script.js?v=1.2.0"></script>
 </body>
 </html>

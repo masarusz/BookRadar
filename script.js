@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.1.2';
+const APP_VERSION = '1.2.0';
 
 const PREFECTURES = [
   '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
@@ -32,6 +32,7 @@ const els = {
   currentCity: document.getElementById('currentCity'),
   searchForm: document.getElementById('searchForm'),
   searchInput: document.getElementById('searchInput'),
+  clearBtn: document.getElementById('clearBtn'),
   resultsSection: document.getElementById('resultsSection'),
   resultsList: document.getElementById('resultsList'),
   availabilitySection: document.getElementById('availabilitySection'),
@@ -422,6 +423,7 @@ els.searchForm.addEventListener('submit', async (e) => {
   els.availabilitySection.hidden = true;
   const query = els.searchInput.value.trim();
   if (!query) return;
+  els.clearBtn.hidden = false;
   try {
     const books = await searchBooks(query);
     renderResults(books);
@@ -429,6 +431,16 @@ els.searchForm.addEventListener('submit', async (e) => {
   } catch (e) {
     showMessage(e.message);
   }
+});
+
+els.clearBtn.addEventListener('click', () => {
+  els.searchInput.value = '';
+  els.resultsList.innerHTML = '';
+  els.resultsSection.hidden = true;
+  els.availabilitySection.hidden = true;
+  els.clearBtn.hidden = true;
+  hideMessage();
+  els.searchInput.focus();
 });
 
 // ---------- Init ----------

@@ -12,6 +12,7 @@ Type a title or author, pick a book, and see which of your local libraries have 
 - **Default library** — set your prefecture/city once; every search checks that library system automatically
 - **Multiple systems per city** — some cities have more than one library system (ward library, university libraries, etc.) — pick which ones to include
 - **Direct links** — each library and reservation link goes straight to the library's own catalog/reserve page
+- **Clear button** — reset the search field and results in one tap to start a new search
 - **Light & dark** — follows your system colour scheme
 - **No dependencies** — pure HTML / CSS / JavaScript, runs entirely client-side
 
@@ -58,6 +59,9 @@ script.js    # App logic (search, Calil calls, polling, rendering)
 ---
 
 ## Change Log
+
+### v1.2.0 — 2026-07-22
+- Add a "クリア" (Clear) button next to search that resets the search field, results, and availability panel for a fresh search
 
 ### v1.1.2 — 2026-07-22
 - Selecting a book now hides the search results list, showing only the 蔵書状況 (availability) panel instead of both at once
