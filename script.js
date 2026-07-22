@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 
 const PREFECTURES = [
   '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
@@ -20,10 +20,16 @@ const els = {
   settingsBtn: document.getElementById('settingsBtn'),
   closeSettingsBtn: document.getElementById('closeSettingsBtn'),
   settingsModal: document.getElementById('settingsModal'),
+  modalContent: document.querySelector('#settingsModal .modal-content'),
   appkeyInput: document.getElementById('appkeyInput'),
   saveKeyBtn: document.getElementById('saveKeyBtn'),
+  clearKeyBtn: document.getElementById('clearKeyBtn'),
+  appkeySavedMsg: document.getElementById('appkeySavedMsg'),
   gbooksKeyInput: document.getElementById('gbooksKeyInput'),
   saveGbooksKeyBtn: document.getElementById('saveGbooksKeyBtn'),
+  clearGbooksKeyBtn: document.getElementById('clearGbooksKeyBtn'),
+  gbooksKeySavedMsg: document.getElementById('gbooksKeySavedMsg'),
+  defaultSavedMsg: document.getElementById('defaultSavedMsg'),
   prefSelect: document.getElementById('prefSelect'),
   citySelect: document.getElementById('citySelect'),
   systemsList: document.getElementById('systemsList'),
@@ -32,6 +38,7 @@ const els = {
   currentCity: document.getElementById('currentCity'),
   searchForm: document.getElementById('searchForm'),
   searchInput: document.getElementById('searchInput'),
+  searchSubmitBtn: document.getElementById('searchSubmitBtn'),
   clearBtn: document.getElementById('clearBtn'),
   resultsSection: document.getElementById('resultsSection'),
   resultsList: document.getElementById('resultsList'),
@@ -58,7 +65,17 @@ function getGbooksKey() {
 
 function getDefault() {
   const raw = localStorage.getItem(LS_DEFAULT);
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.systems)) {
+      throw new Error('invalid shape');
+    }
+    return parsed;
+  } catch (e) {
+    localStorage.removeItem(LS_DEFAULT);
+    return null;
+  }
 }
 
 function setDefault(def) {
@@ -76,15 +93,54 @@ function hideMessage() {
   els.message.hidden = true;
 }
 
+function flashConfirm(el) {
+  el.hidden = false;
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => { el.hidden = true; }, 2500);
+}
+
+function getFocusableElements(container) {
+  return [...container.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+  )].filter(el => el.offsetParent !== null);
+}
+
+let lastFocusedBeforeModal = null;
+
+function handleModalKeydown(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeModal();
+    return;
+  }
+  if (e.key !== 'Tab') return;
+  const focusable = getFocusableElements(els.modalContent);
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 function openModal() {
   els.appkeyInput.value = getAppkey();
   els.gbooksKeyInput.value = getGbooksKey();
   refreshDefaultSummary();
+  lastFocusedBeforeModal = document.activeElement;
   els.settingsModal.hidden = false;
+  els.modalContent.focus();
+  els.settingsModal.addEventListener('keydown', handleModalKeydown);
 }
 
 function closeModal() {
   els.settingsModal.hidden = true;
+  els.settingsModal.removeEventListener('keydown', handleModalKeydown);
+  if (lastFocusedBeforeModal) lastFocusedBeforeModal.focus();
 }
 
 function refreshDefaultSummary() {
@@ -116,25 +172,44 @@ async function fetchLibrariesForPref(pref) {
   return data;
 }
 
-async function calilCheck(isbn, systemids, session) {
+async function calilCheck(isbn, systemids, session, signal) {
   const key = getAppkey();
   const params = new URLSearchParams({ appkey: key, isbn, systemid: systemids, format: 'json', callback: 'no' });
   if (session) params.set('session', session);
-  const res = await fetch(`https://api.calil.jp/check?${params.toString()}`);
+  const res = await fetch(`https://api.calil.jp/check?${params.toString()}`, { signal });
   if (!res.ok) throw new Error('蔵書状況の取得に失敗しました');
   return res.json();
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      }, { once: true });
+    }
+  });
 }
 
-async function pollAvailability(isbn, systemids) {
-  let data = await calilCheck(isbn, systemids);
+// Only allow http(s) URLs through to href/src — blocks javascript:, data:, etc.
+// from externally-supplied values (Calil reserveurl, thumbnails).
+function safeExternalUrl(url) {
+  try {
+    const u = new URL(url, window.location.href);
+    return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function pollAvailability(isbn, systemids, signal) {
+  let data = await calilCheck(isbn, systemids, undefined, signal);
   let attempts = 0;
   while (data.continue === 1 && attempts < 15) {
-    await sleep(2000);
-    data = await calilCheck(isbn, systemids, data.session);
+    await sleep(2000, signal);
+    data = await calilCheck(isbn, systemids, data.session, signal);
     attempts++;
   }
   return data;
@@ -221,6 +296,7 @@ els.saveDefaultBtn.addEventListener('click', () => {
   if (!pref || !city || systems.length === 0) return;
   setDefault({ pref, city, systems });
   refreshDefaultSummary();
+  flashConfirm(els.defaultSavedMsg);
 });
 
 function showSettingsError(text) {
@@ -234,11 +310,25 @@ els.saveKeyBtn.addEventListener('click', () => {
   localStorage.setItem(LS_APPKEY, key);
   showSettingsError('');
   els.systemsList.innerHTML = '';
+  flashConfirm(els.appkeySavedMsg);
+});
+
+els.clearKeyBtn.addEventListener('click', () => {
+  localStorage.removeItem(LS_APPKEY);
+  els.appkeyInput.value = '';
+  flashConfirm(els.appkeySavedMsg);
 });
 
 els.saveGbooksKeyBtn.addEventListener('click', () => {
   const key = els.gbooksKeyInput.value.trim();
   localStorage.setItem(LS_GBOOKS_KEY, key);
+  flashConfirm(els.gbooksKeySavedMsg);
+});
+
+els.clearGbooksKeyBtn.addEventListener('click', () => {
+  localStorage.removeItem(LS_GBOOKS_KEY);
+  els.gbooksKeyInput.value = '';
+  flashConfirm(els.gbooksKeySavedMsg);
 });
 
 // ---------- Modal open/close ----------
@@ -272,10 +362,13 @@ async function searchBooks(query) {
   const data = await res.json();
   return (data.items || []).map(item => {
     const vi = item.volumeInfo || {};
+    const rawThumbnail = (vi.imageLinks || {}).smallThumbnail || null;
     return {
       title: vi.title || '(タイトル不明)',
       authors: vi.authors || [],
-      thumbnail: (vi.imageLinks || {}).smallThumbnail || null,
+      // Google often returns http:// thumbnails; upgrade to https so they aren't
+      // blocked as mixed content / by the img-src CSP directive (https-only hosts).
+      thumbnail: rawThumbnail ? rawThumbnail.replace(/^http:/, 'https:') : null,
       isbn: extractIsbn(vi),
     };
   });
@@ -286,13 +379,17 @@ function renderResults(books) {
   els.resultsSection.hidden = books.length === 0;
   for (const book of books) {
     const li = document.createElement('li');
-    li.className = 'result-item' + (book.isbn ? '' : ' disabled');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'result-item' + (book.isbn ? '' : ' disabled');
+    if (!book.isbn) btn.disabled = true;
 
-    if (book.thumbnail) {
+    const safeThumbnail = book.thumbnail ? safeExternalUrl(book.thumbnail) : null;
+    if (safeThumbnail) {
       const img = document.createElement('img');
-      img.src = book.thumbnail;
+      img.src = safeThumbnail;
       img.alt = '';
-      li.appendChild(img);
+      btn.appendChild(img);
     }
 
     const meta = document.createElement('div');
@@ -307,11 +404,12 @@ function renderResults(books) {
     isbnLine.className = 'isbn';
     isbnLine.textContent = book.isbn ? `ISBN ${book.isbn}` : 'ISBN なし（検索不可）';
     meta.append(title, authors, isbnLine);
-    li.appendChild(meta);
+    btn.appendChild(meta);
 
     if (book.isbn) {
-      li.addEventListener('click', () => checkAvailability(book));
+      btn.addEventListener('click', () => checkAvailability(book));
     }
+    li.appendChild(btn);
     els.resultsList.appendChild(li);
   }
 }
@@ -325,6 +423,8 @@ function statusBadgeClass(status) {
   return '';
 }
 
+let currentAvailabilityController = null;
+
 async function checkAvailability(book) {
   hideMessage();
   const def = getDefault();
@@ -334,18 +434,32 @@ async function checkAvailability(book) {
     return;
   }
 
+  // Cancel any still-in-flight check so a previous (now stale) request can't
+  // overwrite the panel after this one finishes, and stops wasting quota on it.
+  if (currentAvailabilityController) currentAvailabilityController.abort();
+  const controller = new AbortController();
+  currentAvailabilityController = controller;
+
   els.resultsSection.hidden = true;
   els.availabilitySection.hidden = false;
   els.availabilityList.innerHTML = '';
-  els.availabilityBook.innerHTML = `<a href="https://calil.jp/book/${book.isbn}" target="_blank" rel="noopener">${book.title}</a>`;
+  els.availabilityBook.innerHTML = '';
+  const bookLink = document.createElement('a');
+  bookLink.href = `https://calil.jp/book/${encodeURIComponent(book.isbn)}`;
+  bookLink.target = '_blank';
+  bookLink.rel = 'noopener';
+  bookLink.textContent = book.title;
+  els.availabilityBook.appendChild(bookLink);
   els.availabilityStatus.textContent = '検索中...';
   els.availabilitySection.scrollIntoView({ behavior: 'smooth' });
 
   const systemids = def.systems.map(s => s.systemid).join(',');
   try {
-    const data = await pollAvailability(book.isbn, systemids);
+    const data = await pollAvailability(book.isbn, systemids, controller.signal);
+    if (controller.signal.aborted) return;
     renderAvailability(data, book.isbn, def);
   } catch (e) {
+    if (e.name === 'AbortError') return;
     els.availabilityStatus.textContent = e.message;
   }
 }
@@ -362,7 +476,12 @@ function renderAvailability(data, isbn, def) {
     if (result.status === 'Error') {
       const li = document.createElement('li');
       li.className = 'lib-item';
-      li.innerHTML = `<div class="system-name">${sys.systemname}</div><div>この図書館システムでは検索できませんでした。</div>`;
+      const sysNameDiv = document.createElement('div');
+      sysNameDiv.className = 'system-name';
+      sysNameDiv.textContent = sys.systemname;
+      const errDiv = document.createElement('div');
+      errDiv.textContent = 'この図書館システムでは検索できませんでした。';
+      li.append(sysNameDiv, errDiv);
       els.availabilityList.appendChild(li);
       anyRendered = true;
       continue;
@@ -386,7 +505,12 @@ function renderAvailability(data, isbn, def) {
       const nameDiv = document.createElement('div');
       nameDiv.className = 'lib-name';
       if (libInfo) {
-        nameDiv.innerHTML = `<a href="https://calil.jp/library/${libInfo.libid}/${encodeURIComponent(libInfo.formal)}" target="_blank" rel="noopener">${name}</a>`;
+        const link = document.createElement('a');
+        link.href = `https://calil.jp/library/${encodeURIComponent(libInfo.libid)}/${encodeURIComponent(libInfo.formal)}`;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = name;
+        nameDiv.appendChild(link);
       } else {
         nameDiv.textContent = name;
       }
@@ -398,10 +522,16 @@ function renderAvailability(data, isbn, def) {
       row.append(nameDiv, badge);
       li.append(systemNameDiv, row);
 
-      if (result.reserveurl) {
+      const safeReserveUrl = result.reserveurl ? safeExternalUrl(result.reserveurl) : null;
+      if (safeReserveUrl) {
         const reserveDiv = document.createElement('div');
         reserveDiv.className = 'reserve-link';
-        reserveDiv.innerHTML = `<a href="${result.reserveurl}" target="_blank" rel="noopener">予約ページへ →</a>`;
+        const reserveLink = document.createElement('a');
+        reserveLink.href = safeReserveUrl;
+        reserveLink.target = '_blank';
+        reserveLink.rel = 'noopener';
+        reserveLink.textContent = '予約ページへ →';
+        reserveDiv.appendChild(reserveLink);
         li.appendChild(reserveDiv);
       }
 
@@ -419,17 +549,21 @@ function renderAvailability(data, isbn, def) {
 
 els.searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (els.searchSubmitBtn.disabled) return; // a search is already in flight
   hideMessage();
   els.availabilitySection.hidden = true;
   const query = els.searchInput.value.trim();
   if (!query) return;
   els.clearBtn.hidden = false;
+  els.searchSubmitBtn.disabled = true;
   try {
     const books = await searchBooks(query);
     renderResults(books);
     if (books.length === 0) showMessage('該当する書籍が見つかりませんでした。');
   } catch (e) {
     showMessage(e.message);
+  } finally {
+    els.searchSubmitBtn.disabled = false;
   }
 });
 
