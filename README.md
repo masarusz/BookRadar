@@ -59,6 +59,9 @@ script.js    # App logic (search, Calil calls, polling, rendering)
 
 ## Change Log
 
+### v1.1.1 — 2026-07-22
+- Show the current version number in the footer, so you can confirm the deployed site has actually updated (GitHub Pages caches assets for a while after each release)
+
 ### v1.1.0 — 2026-07-22
 - Add optional Google Books API key setting to avoid the shared anonymous-quota `429` errors that keyless search can hit
 - Clearer error messages distinguishing quota issues from other search failures

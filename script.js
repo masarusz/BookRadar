@@ -1,5 +1,7 @@
 'use strict';
 
+const APP_VERSION = '1.1.1';
+
 const PREFECTURES = [
   '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
   '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
@@ -37,6 +39,7 @@ const els = {
   availabilityStatus: document.getElementById('availabilityStatus'),
   availabilityList: document.getElementById('availabilityList'),
   message: document.getElementById('message'),
+  appVersion: document.getElementById('appVersion'),
 };
 
 let libraryCacheByPref = {}; // pref -> array of library objects from Calil
@@ -431,3 +434,4 @@ els.searchForm.addEventListener('submit', async (e) => {
 
 populatePrefectures();
 refreshDefaultSummary();
+els.appVersion.textContent = `v${APP_VERSION}`;

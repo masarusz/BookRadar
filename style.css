@@ -260,6 +260,12 @@ h2 {
 
 .app-footer a { color: var(--text-muted); }
 
+.app-version {
+  margin: 0.4rem 0 0;
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
 /* Modal */
 .modal {
   position: fixed;
