@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 
 const PREFECTURES = [
   '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
@@ -133,15 +133,28 @@ function openModal() {
   refreshDefaultSummary();
   lastFocusedBeforeModal = document.activeElement;
   els.settingsModal.hidden = false;
+  document.body.classList.add('modal-open');
   els.modalContent.focus();
   els.settingsModal.addEventListener('keydown', handleModalKeydown);
 }
 
 function closeModal() {
   els.settingsModal.hidden = true;
+  document.body.classList.remove('modal-open');
   els.settingsModal.removeEventListener('keydown', handleModalKeydown);
   if (lastFocusedBeforeModal) lastFocusedBeforeModal.focus();
 }
+
+// Mobile keyboards can push the focused field out of view inside the
+// scrollable modal (especially with a fixed-position overlay); re-assert
+// its position once the keyboard has finished animating in.
+els.modalContent.addEventListener('focusin', (e) => {
+  if (e.target.matches('input, select')) {
+    setTimeout(() => {
+      e.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 300);
+  }
+});
 
 function refreshDefaultSummary() {
   const def = getDefault();
