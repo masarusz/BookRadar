@@ -56,6 +56,14 @@ body {
   font-size: 1.6rem;
 }
 
+.app-title-icon {
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.3em;
+  border-radius: 22%;
+  vertical-align: -0.2em;
+}
+
 .tagline {
   margin: 0.25rem 0 0;
   color: var(--text-muted);

@@ -62,6 +62,9 @@ script.js    # App logic (search, Calil calls, polling, rendering)
 
 ## Change Log
 
+### v1.3.3 — 2026-11-18
+- Header: replace the emoji next to the app name with the app icon (`icons/app-icon.svg`, rounded corners, decorative `alt=""`)
+
 ### v1.3.2 — 2026-11-18
 - Replace the emoji favicon with the app icon: SVG favicon, 32×32 PNG fallback, and a 180×180 `apple-touch-icon` for iOS home screens
 
