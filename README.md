@@ -62,6 +62,9 @@ script.js    # App logic (search, Calil calls, polling, rendering)
 
 ## Change Log
 
+### v1.3.2 — 2026-11-18
+- Replace the emoji favicon with the app icon: SVG favicon, 32×32 PNG fallback, and a 180×180 `apple-touch-icon` for iOS home screens
+
 ### v1.3.1 — 2026-07-23
 - Fix: on mobile (reported on iPhone Chrome), opening the on-screen keyboard to type an API key could scroll the field itself out of view above the fold. The fixed-position settings modal now locks background scroll while open, uses `dvh` (dynamic viewport height, accounts for the keyboard) instead of plain `vh` for its max height, and explicitly scrolls a focused field back into view once the keyboard finishes animating in
 
